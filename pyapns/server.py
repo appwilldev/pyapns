@@ -279,7 +279,7 @@ class APNSServer(xmlrpc.XMLRPC):
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, timeout))
-      need_multi = app_id.find("AR_IconFreeCN")>=0 #TODO
+      need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
       if(need_multi):
         for _ in xrange(99):
           ns = APNSService(path_to_cert_or_cert, environment, timeout)
