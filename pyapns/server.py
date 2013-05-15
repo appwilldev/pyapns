@@ -360,3 +360,84 @@ def log_errback(name):
     log.err('errback in %s : %s' % (name, str(err)))
     return err
   return _log_errback
+
+#####################
+from twisted.internet import protocol, reactor
+
+def parse_netint(b):
+    return struct.unpack('!I', b)[0]
+
+def pack_netint(i):
+    return struct.pack('!I', i)
+
+class P4Server(protocol.Protocol):
+
+  def __init__(self):
+    self.data = ''
+    self.app_ids = app_ids
+
+  def apns_service(self, app_id):
+    if app_id not in app_ids:
+      return None
+    services = self.app_ids[app_id]
+    ret = services[-1]
+    if len(services) > 1:
+      tmp = services.pop()
+      services.insert(0, tmp)
+    #endif
+    return ret
+
+  def provision(self, app_id, path_to_cert_or_cert, environment):
+    if environment not in ('sandbox', 'production'):
+      return None # TODO log
+    if not app_id in self.app_ids:
+      # log.msg('provisioning ' + app_id + ' environment ' + environment)
+      self.app_ids[app_id] = []
+      self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, 15))
+      need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
+      if(need_multi):
+        for _ in xrange(99):
+          ns = APNSService(path_to_cert_or_cert, environment, 15)
+          self.app_ids[app_id].append(ns)
+
+  def notify(self, app_id, token_or_token_list, aps_dict_or_list):
+    d = self.apns_service(app_id).write(
+      encode_notifications(
+        [t.replace(' ', '') for t in token_or_token_list]
+        if (type(token_or_token_list) is list)
+        else token_or_token_list.replace(' ', ''),
+        aps_dict_or_list))
+
+
+  def feedback(self, app_id):
+    return self.apns_service(app_id).read().addCallback(
+      lambda r: decode_feedback(r))
+
+  def parse_data(self):
+    while True:
+      l = len(self.data)
+      if l < 4: return
+      lm = parse_netint(self.data[:4])
+      if l - 4 < lm:
+        return
+      p = self.data[4:lm+4]
+      self.data=self.data[lm+4:]
+      jd =  json.loads(p)
+      if (jd.get("cmd") == "provision"):
+        self.provision(jd.get("app_id"),
+                       jd.get("cert"),
+                       jd.get("env"))
+      elif (jd.get("cmd") == "notify"):
+        self.notify(jd.get("app_id"),
+                    jd.get("tokens"),
+                    jd.get("notify"))
+      #endif
+
+  def dataReceived(self, data):
+    self.data = self.data + data
+    self.parse_data()
+    #self.transport.write(data)
+
+class P4Factory(protocol.Factory):
+  def buildProtocol(self, addr):
+    return P4Server()

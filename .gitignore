@@ -10,3 +10,6 @@ build/**
 dist/**
 .idea
 atlassian-ide-plugin.xml
+*.log
+*.pid
+dropin.cache

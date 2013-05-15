@@ -1,3 +1,5 @@
+import json
+import struct
 import xmlrpclib
 import threading
 import httplib
@@ -77,7 +79,7 @@ def default_callback(func):
 
 @default_callback
 @reprovision_and_retry
-def provision(app_id, path_to_cert, environment, timeout=15, async=False, 
+def provision(app_id, path_to_cert, environment, timeout=15, async=False,
               callback=None, errback=None):
   args = [app_id, path_to_cert, environment, timeout]
   f_args = ['provision', args, callback, errback]
@@ -89,7 +91,7 @@ def provision(app_id, path_to_cert, environment, timeout=15, async=False,
 
 @default_callback
 @reprovision_and_retry
-def notify(app_id, tokens, notifications, async=False, callback=None, 
+def notify(app_id, tokens, notifications, async=False, callback=None,
            errback=None):
   args = [app_id, tokens, notifications]
   f_args = ['notify', args, callback, errback]
@@ -154,10 +156,81 @@ class TimeoutHTTPConnection(httplib.HTTPConnection):
   def connect(self):
     httplib.HTTPConnection.connect(self)
     self.sock.settimeout(self.timeout)
-  
+
 class TimeoutHTTP(httplib.HTTP):
   _connection_class = TimeoutHTTPConnection
-  
+
   def set_timeout(self, timeout):
     self._conn.timeout = timeout
-  
+
+#########################################################
+# ClientP4
+################
+
+import socket
+
+def parse_netint(b):
+    return struct.unpack('!I', b)[0]
+
+def pack_netint(i):
+    return struct.pack('!I', i)
+
+def write_response(sock, s):
+    if isinstance(s, dict):
+      s = json.dumps(s)
+    if isinstance(s, unicode):
+      # Python 2.x defaults to 'ascii' :-(
+      s = s.encode('utf-8')
+    sock.sendall(pack_netint(len(s)) + s)
+
+def read_response(sock):
+  r = recvbytes(sock, 4)
+  if not r:
+    return
+
+  length = parse_netint(r)
+  data = recvbytes(sock, length)
+  if data is None:
+    return None
+  return fromjson(data)
+
+class ClientP4(object):
+
+    def __init__(self, addr):
+        sock = self.sock = socket.socket()
+        if addr.endswith("/"): addr=addr[:-1]
+        if addr.startswith("http://"):
+          addr = addr[7:]
+          addr = addr.split(":")
+          addr = (addr[0], int(addr[1]))
+        #endif
+        sock.connect(addr)
+
+    def do_cmd(self, cmd, **other):
+      d = { 'cmd': cmd }
+      d.update(other)
+      write_response(self.sock, d)
+      # need not response
+      # return read_response(self.sock)
+
+CLIENT_P4=None
+def get_clientp4():
+  global CLIENT_P4
+  if not CLIENT_P4:
+    CLIENT_P4 = ClientP4(OPTIONS.get("HOST","http://localhost:8000"))
+  #endif
+  return CLIENT_P4
+
+def provisionp4(app_id, path_to_cert, environment):
+  c = get_clientp4()
+  c.do_cmd("provision",
+           app_id = app_id,
+           cert   = path_to_cert,
+           env    = environment)
+
+def notifyp4(app_id, tokens, notifications):
+  c = get_clientp4()
+  c.do_cmd("notify",
+           app_id = app_id,
+           tokens = tokens,
+           notify = notifications)
