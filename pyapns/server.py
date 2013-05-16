@@ -401,12 +401,15 @@ class P4Server(protocol.Protocol):
           self.app_ids[app_id].append(ns)
 
   def notify(self, app_id, token_or_token_list, aps_dict_or_list):
-    d = self.apns_service(app_id).write(
-      encode_notifications(
+    try:
+      data = encode_notifications(
         [t.replace(' ', '') for t in token_or_token_list]
         if (type(token_or_token_list) is list)
         else token_or_token_list.replace(' ', ''),
-        aps_dict_or_list))
+        aps_dict_or_list)
+      d = self.apns_service(app_id).write(data)
+    except:
+      pass
 
 
   def feedback(self, app_id):
@@ -422,7 +425,12 @@ class P4Server(protocol.Protocol):
         return
       p = self.data[4:lm+4]
       self.data=self.data[lm+4:]
-      jd =  json.loads(p)
+      jd = None
+      try:
+        jd = json.loads(p)
+      except:
+        pass
+      if not jd: continue
       if (jd.get("cmd") == "provision"):
         self.provision(jd.get("app_id"),
                        jd.get("cert"),
