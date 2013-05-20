@@ -207,7 +207,7 @@ class APNSService(service.Service):
         except: pass
         return r
 
-      d.addCallback(lambda p: p.sendMessage(notifications) if p else None)
+      d.addCallback(lambda p: p.sendMessage(notifications))
       d.addErrback(log_errback('apns-service-write'))
       d.addBoth(cancel_timeout)
       return d
@@ -439,6 +439,7 @@ class P4Server(protocol.Protocol):
         self.notify(jd.get("app_id"),
                     jd.get("tokens"),
                     jd.get("notify"))
+        #log.msg("FEEDBACK:", self.feedback(jd.get("app_id")))
       #endif
 
   def dataReceived(self, data):
