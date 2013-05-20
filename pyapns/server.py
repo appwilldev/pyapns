@@ -172,7 +172,7 @@ class APNSService(service.Service):
   clientProtocolFactory = APNSClientFactory
   feedbackProtocolFactory = APNSFeedbackClientFactory
 
-  def __init__(self, cert_path, environment, timeout=15):
+  def __init__(self, cert_path, environment, timeout=60):
     log.msg('APNSService __init__')
     self.factory = None
     self.environment = environment
@@ -207,7 +207,7 @@ class APNSService(service.Service):
         except: pass
         return r
 
-      d.addCallback(lambda p: p.sendMessage(notifications))
+      d.addCallback(lambda p: p.sendMessage(notifications) if p else None)
       d.addErrback(log_errback('apns-service-write'))
       d.addBoth(cancel_timeout)
       return d
