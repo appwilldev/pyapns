@@ -206,7 +206,7 @@ class APNSService(service.Service):
         try: timeout.cancel()
         except: pass
         return r
-
+      log.msg("-------------TEST---")
       d.addCallback(lambda p: p.sendMessage(notifications))
       d.addErrback(log_errback('apns-service-write'))
       d.addBoth(cancel_timeout)
@@ -281,7 +281,7 @@ class APNSServer(xmlrpc.XMLRPC):
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, timeout))
       need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
       if(need_multi):
-        for _ in xrange(99):
+        for _ in xrange(0):
           ns = APNSService(path_to_cert_or_cert, environment, timeout)
           self.app_ids[app_id].append(ns)
 
@@ -395,10 +395,10 @@ class P4Server(protocol.Protocol):
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, 15))
       need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
-      if(need_multi):
-        for _ in xrange(99):
-          ns = APNSService(path_to_cert_or_cert, environment, 15)
-          self.app_ids[app_id].append(ns)
+      #if(need_multi):
+      #  for _ in xrange(0):
+      #    ns = APNSService(path_to_cert_or_cert, environment, 15)
+      #    self.app_ids[app_id].append(ns)
 
   def notify(self, app_id, token_or_token_list, aps_dict_or_list):
     try:
@@ -413,8 +413,11 @@ class P4Server(protocol.Protocol):
 
 
   def feedback(self, app_id):
-    return self.apns_service(app_id).read().addCallback(
-      lambda r: decode_feedback(r))
+    def _cb(r):
+        x = decode_feedback(r)
+        log.msg("FEEDBACK:", x)
+        return x
+    return self.apns_service(app_id).read().addCallback(_cb)
 
   def parse_data(self):
     while True:
@@ -439,7 +442,7 @@ class P4Server(protocol.Protocol):
         self.notify(jd.get("app_id"),
                     jd.get("tokens"),
                     jd.get("notify"))
-        #log.msg("FEEDBACK:", self.feedback(jd.get("app_id")))
+        #self.feedback(jd.get("app_id"))
       #endif
 
   def dataReceived(self, data):
