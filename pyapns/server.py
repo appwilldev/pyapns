@@ -69,16 +69,21 @@ class APNSClientContextFactory(ClientContextFactory):
 
 
 class APNSProtocol(Protocol):
+
+  def __init__(self, appname="APP-UNSET"):
+    #Protocol.__init__(self)
+    self.appname = appname
+
   def connectionMade(self):
-    log.msg('APNSProtocol connectionMade')
+    log.msg('APNSProtocol connectionMade app=%s' % self.appname)
     self.factory.addClient(self)
 
   def sendMessage(self, msg):
-    log.msg('APNSProtocol sendMessage msg=%s' % binascii.hexlify(msg))
+    log.msg('APNSProtocol sendMessage app=%s msg=%s' % (self.appname, binascii.hexlify(msg)))
     return self.transport.write(msg)
 
   def connectionLost(self, reason):
-    log.msg('APNSProtocol connectionLost')
+    log.msg('APNSProtocol connectionLost app=%s' % self.appname)
     self.factory.removeClient(self)
 
 
@@ -105,7 +110,8 @@ class APNSFeedbackHandler(LineReceiver):
 class APNSFeedbackClientFactory(ClientFactory):
   protocol = APNSFeedbackHandler
 
-  def __init__(self):
+  def __init__(self, appname="APP-UNSET"):
+    self.appname = appname
     self.deferred = defer.Deferred()
 
   def buildProtocol(self, addr):
@@ -117,24 +123,25 @@ class APNSFeedbackClientFactory(ClientFactory):
     return p
 
   def startedConnecting(self, connector):
-    log.msg('APNSFeedbackClientFactory startedConnecting')
+    log.msg('APNSFeedbackClientFactory startedConnecting app=%s' % self.appname)
 
   def clientConnectionLost(self, connector, reason):
-    log.msg('APNSFeedbackClientFactory clientConnectionLost reason=%s' % reason)
+    log.msg('APNSFeedbackClientFactory clientConnectionLost app=%s, reason=%s' % (self.appname, reason))
     ClientFactory.clientConnectionLost(self, connector, reason)
 
   def clientConnectionFailed(self, connector, reason):
-    log.msg('APNSFeedbackClientFactory clientConnectionFailed reason=%s' % reason)
+    log.msg('APNSFeedbackClientFactory clientConnectionFailed app=%s, reason=%s' % (self.appname, reason))
     ClientFactory.clientConnectionLost(self, connector, reason)
 
 
 class APNSClientFactory(ReconnectingClientFactory):
   protocol = APNSProtocol
 
-  def __init__(self):
+  def __init__(self, appname="APP-UNSET"):
     self.clientProtocol = None
     self.deferred = defer.Deferred()
     self.deferred.addErrback(log_errback('APNSClientFactory __init__'))
+    self.appname = appname
 
   def addClient(self, p):
     self.clientProtocol = p
@@ -146,20 +153,20 @@ class APNSClientFactory(ReconnectingClientFactory):
     self.deferred.addErrback(log_errback('APNSClientFactory removeClient'))
 
   def startedConnecting(self, connector):
-    log.msg('APNSClientFactory startedConnecting')
+    log.msg('APNSClientFactory startedConnecting app=%s' % self.appname)
 
   def buildProtocol(self, addr):
     self.resetDelay()
-    p = self.protocol()
+    p = self.protocol(self.appname)
     p.factory = self
     return p
 
   def clientConnectionLost(self, connector, reason):
-    log.msg('APNSClientFactory clientConnectionLost reason=%s' % reason)
+    log.msg('APNSClientFactory clientConnectionLost app=%s, reason=%s' % (self.appname, reason))
     ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
   def clientConnectionFailed(self, connector, reason):
-    log.msg('APNSClientFactory clientConnectionFailed reason=%s' % reason)
+    log.msg('APNSClientFactory clientConnectionFailed app=%s, reason=%s' % (self.appname, reason))
     ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
 
@@ -172,12 +179,13 @@ class APNSService(service.Service):
   clientProtocolFactory = APNSClientFactory
   feedbackProtocolFactory = APNSFeedbackClientFactory
 
-  def __init__(self, cert_path, environment, timeout=60):
+  def __init__(self, cert_path, environment, appname="APP-UNSET", timeout=60):
     log.msg('APNSService __init__')
     self.factory = None
     self.environment = environment
     self.cert_path = cert_path
     self.raw_mode = False
+    self.appname = appname
     self.timeout = timeout
 
   def getContextFactory(self):
@@ -190,7 +198,7 @@ class APNSService(service.Service):
       server, port = ((APNS_SERVER_SANDBOX_HOSTNAME
                       if self.environment == 'sandbox'
                       else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
-      self.factory = self.clientProtocolFactory()
+      self.factory = self.clientProtocolFactory(appname=self.appname)
       context = self.getContextFactory()
       reactor.connectSSL(server, port, self.factory, context)
 
@@ -206,7 +214,6 @@ class APNSService(service.Service):
         try: timeout.cancel()
         except: pass
         return r
-      log.msg("-------------TEST---")
       d.addCallback(lambda p: p.sendMessage(notifications))
       d.addErrback(log_errback('apns-service-write'))
       d.addBoth(cancel_timeout)
@@ -219,7 +226,7 @@ class APNSService(service.Service):
       server, port = ((FEEDBACK_SERVER_SANDBOX_HOSTNAME
                       if self.environment == 'sandbox'
                       else FEEDBACK_SERVER_HOSTNAME), FEEDBACK_SERVER_PORT)
-      factory = self.feedbackProtocolFactory()
+      factory = self.feedbackProtocolFactory(self.appname)
       context = self.getContextFactory()
       reactor.connectSSL(server, port, factory, context)
       factory.deferred.addErrback(log_errback('apns-feedback-read'))
@@ -278,7 +285,7 @@ class APNSServer(xmlrpc.XMLRPC):
     if not app_id in self.app_ids:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
-      self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, timeout))
+      self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, timeout))
       need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
       if(need_multi):
         for _ in xrange(0):
@@ -393,7 +400,7 @@ class P4Server(protocol.Protocol):
     if not app_id in self.app_ids:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
-      self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, 15))
+      self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, 15))
       need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
       #if(need_multi):
       #  for _ in xrange(0):
