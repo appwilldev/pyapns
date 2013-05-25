@@ -15,6 +15,7 @@ from twisted.python import log
 from zope.interface import Interface, implements
 from twisted.web import xmlrpc
 
+#defer.setDebugging(True)
 
 APNS_SERVER_SANDBOX_HOSTNAME = "gateway.sandbox.push.apple.com"
 APNS_SERVER_HOSTNAME = "gateway.push.apple.com"
@@ -94,17 +95,23 @@ class APNSFeedbackHandler(LineReceiver):
     log.msg('feedbackHandler connectionMade')
 
   def rawDataReceived(self, data):
-    log.msg('feedbackHandler rawDataReceived %s' % binascii.hexlify(data))
+    #log.msg('feedbackHandler rawDataReceived %s' % binascii.hexlify(data))
+    log.msg('feedbackHandler rawDataReceived %s bytes' % len(data))
     self.io.write(data)
 
   def lineReceived(self, data):
-    log.msg('feedbackHandler lineReceived %s' % binascii.hexlify(data))
+    #log.msg('feedbackHandler lineReceived %s' % binascii.hexlify(data))
+    log.msg('feedbackHandler lineReceived %s bytes' % len(data))
     self.io.write(data)
 
   def connectionLost(self, reason):
     log.msg('feedbackHandler connectionLost %s' % reason)
-    self.deferred.callback(self.io.getvalue())
+    fbs = decode_feedback(self.io.getvalue())
     self.io.close()
+    s = "\n".join(map(lambda x: "fail-token:%s" % x[1], fbs))
+    log.msg('FEEDBACK: \n%s\n' % s)
+    #self.deferred.callback(self.io.getvalue())
+
 
 
 class APNSFeedbackClientFactory(ClientFactory):
@@ -382,6 +389,7 @@ class P4Server(protocol.Protocol):
   def __init__(self):
     self.data = ''
     self.app_ids = app_ids
+    self.sent_count = 0
 
   def apns_service(self, app_id):
     if app_id not in app_ids:
@@ -446,9 +454,12 @@ class P4Server(protocol.Protocol):
                        jd.get("cert"),
                        jd.get("env"))
       elif (jd.get("cmd") == "notify"):
+        self.sent_count = self.self.sent_count + 1
         self.notify(jd.get("app_id"),
                     jd.get("tokens"),
                     jd.get("notify"))
+        if self.sent_count < 5000: continue
+        self.sent_count = 0
         #self.feedback(jd.get("app_id"))
       #endif
 
