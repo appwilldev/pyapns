@@ -454,13 +454,13 @@ class P4Server(protocol.Protocol):
                        jd.get("cert"),
                        jd.get("env"))
       elif (jd.get("cmd") == "notify"):
-        self.sent_count = self.self.sent_count + 1
+        self.sent_count = self.sent_count + 1
         self.notify(jd.get("app_id"),
                     jd.get("tokens"),
                     jd.get("notify"))
         if self.sent_count < 5000: continue
         self.sent_count = 0
-        #self.feedback(jd.get("app_id"))
+        self.feedback(jd.get("app_id"))
       #endif
 
   def dataReceived(self, data):
