@@ -295,7 +295,7 @@ class APNSServer(xmlrpc.XMLRPC):
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, timeout))
       need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
       if(need_multi):
-        for _ in xrange(0):
+        for _ in xrange(99):
           ns = APNSService(path_to_cert_or_cert, environment, timeout)
           self.app_ids[app_id].append(ns)
 
@@ -410,10 +410,10 @@ class P4Server(protocol.Protocol):
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, 15))
       need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
-      #if(need_multi):
-      #  for _ in xrange(0):
-      #    ns = APNSService(path_to_cert_or_cert, environment, 15)
-      #    self.app_ids[app_id].append(ns)
+      if(need_multi):
+        for _ in xrange(99):
+          ns = APNSService(path_to_cert_or_cert, environment, 15)
+          self.app_ids[app_id].append(ns)
 
   def notify(self, app_id, token_or_token_list, aps_dict_or_list):
     try:
