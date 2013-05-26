@@ -293,10 +293,10 @@ class APNSServer(xmlrpc.XMLRPC):
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, timeout))
-      need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
+      need_multi = app_id.find("FreeCN_production")>=0 #TODO
       if(need_multi):
-        for _ in xrange(99):
-          ns = APNSService(path_to_cert_or_cert, environment, timeout)
+        for _ in xrange(149):
+          ns = APNSService(path_to_cert_or_cert, environment, app_id, timeout)
           self.app_ids[app_id].append(ns)
 
   def xmlrpc_notify(self, app_id, token_or_token_list, aps_dict_or_list):
@@ -409,10 +409,10 @@ class P4Server(protocol.Protocol):
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, 15))
-      need_multi = app_id.find("AR_IconFreeCN_production")>=0 #TODO
+      need_multi = app_id.find("FreeCN_production")>=0 #TODO
       if(need_multi):
-        for _ in xrange(99):
-          ns = APNSService(path_to_cert_or_cert, environment, 15)
+        for _ in xrange(149):
+          ns = APNSService(path_to_cert_or_cert, environment, app_id, 15)
           self.app_ids[app_id].append(ns)
 
   def notify(self, app_id, token_or_token_list, aps_dict_or_list):
