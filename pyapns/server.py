@@ -403,7 +403,7 @@ class P4Server(protocol.Protocol):
     return ret
 
   def provision(self, app_id, path_to_cert_or_cert, environment):
-    if environment not in ('sandbox', 'production'):
+    if environment not in ('sandbox', 'production', 'inhouse'):
       return None # TODO log
     if not app_id in self.app_ids:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
