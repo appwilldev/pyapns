@@ -80,7 +80,8 @@ class APNSProtocol(Protocol):
     self.factory.addClient(self)
 
   def sendMessage(self, msg):
-    log.msg('APNSProtocol sendMessage app=%s msg=%s' % (self.appname, binascii.hexlify(msg)))
+    # log.msg('APNSProtocol sendMessage app=%s msg=%s' % (self.appname, binascii.hexlify(msg)))
+    log.msg('APNSProtocol sendMessage app=%s' % self.appname)
     return self.transport.write(msg)
 
   def connectionLost(self, reason):
@@ -409,7 +410,7 @@ class P4Server(protocol.Protocol):
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, 30))
-      need_multi = app_id.find("FreeCN_production")>=0 #TODO
+      # need_multi = app_id.find("FreeCN_production")>=0 #TODO
       # if(need_multi):
       #   for _ in xrange(90):
       #     ns = APNSService(path_to_cert_or_cert, environment, app_id, 30)
