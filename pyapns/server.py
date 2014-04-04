@@ -196,19 +196,27 @@ class APNSService(service.Service):
     self.appname = appname
     self.timeout = timeout
 
+    log.msg('APNSService write (connecting)')
+    server, port = ((APNS_SERVER_SANDBOX_HOSTNAME
+                    if self.environment == 'sandbox'
+                    else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
+    self.factory = self.clientProtocolFactory(appname=self.appname)
+    context = self.getContextFactory()
+    reactor.connectSSL(server, port, self.factory, context)
+
   def getContextFactory(self):
     return APNSClientContextFactory(self.cert_path)
 
   def write(self, notifications):
     "Connect to the APNS service and send notifications"
-    if not self.factory:
-      log.msg('APNSService write (connecting)')
-      server, port = ((APNS_SERVER_SANDBOX_HOSTNAME
-                      if self.environment == 'sandbox'
-                      else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
-      self.factory = self.clientProtocolFactory(appname=self.appname)
-      context = self.getContextFactory()
-      reactor.connectSSL(server, port, self.factory, context)
+    # if not self.factory:
+    #   log.msg('APNSService write (connecting)')
+    #   server, port = ((APNS_SERVER_SANDBOX_HOSTNAME
+    #                   if self.environment == 'sandbox'
+    #                   else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
+    #   self.factory = self.clientProtocolFactory(appname=self.appname)
+    #   context = self.getContextFactory()
+    #   reactor.connectSSL(server, port, self.factory, context)
 
     client = self.factory.clientProtocol
     if client:
