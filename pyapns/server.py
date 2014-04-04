@@ -442,8 +442,8 @@ class P4Server(protocol.Protocol):
       if count > 0:
         for i in xrange(count):
           log.msg('After Add %dth APNSService for %s ' % (i+1, app_name))
-          ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
-          self.app_apns_services[app_name].append(ns)
+          apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
+          self.app_apns_services[app_name].insert(0, apns_service)
 
   def notify(self, app_name, token_or_token_list, aps_dict_or_list):
     try:
