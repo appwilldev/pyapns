@@ -81,7 +81,7 @@ class APNSProtocol(Protocol):
 
   def sendMessage(self, msg):
     # log.msg('APNSProtocol sendMessage app=%s msg=%s' % (self.appname, binascii.hexlify(msg)))
-    log.msg('APNSProtocol sendMessage app=%s' % self.appname)
+    # log.msg('APNSProtocol sendMessage app=%s' % self.appname)
     return self.transport.write(msg)
 
   def connectionLost(self, reason):
@@ -200,9 +200,21 @@ class APNSService(service.Service):
     server, port = ((APNS_SERVER_SANDBOX_HOSTNAME
                     if self.environment == 'sandbox'
                     else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
-    self.factory = self.clientProtocolFactory(appname=self.appname)
-    context = self.getContextFactory()
-    reactor.connectSSL(server, port, self.factory, context)
+
+    i = 0
+    while i < 3:
+      self.factory = self.clientProtocolFactory(appname=self.appname)
+      context = self.getContextFactory()
+      reactor.connectSSL(server, port, self.factory, context)
+
+      if self.factory.clientProtocol:
+        break
+      i += 1
+
+  def is_valid(self):
+    if self.factory.clientProtocol:
+      return True
+    return False
 
   def getContextFactory(self):
     return APNSClientContextFactory(self.cert_path)
@@ -214,9 +226,16 @@ class APNSService(service.Service):
       server, port = ((APNS_SERVER_SANDBOX_HOSTNAME
                       if self.environment == 'sandbox'
                       else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
-      self.factory = self.clientProtocolFactory(appname=self.appname)
-      context = self.getContextFactory()
-      reactor.connectSSL(server, port, self.factory, context)
+
+      i = 0
+      while i < 3:
+        self.factory = self.clientProtocolFactory(appname=self.appname)
+        context = self.getContextFactory()
+        reactor.connectSSL(server, port, self.factory, context)
+
+        if self.factory.clientProtocol:
+          break
+        i += 1
 
     client = self.factory.clientProtocol
     if client:
@@ -397,13 +416,13 @@ class P4Server(protocol.Protocol):
 
   def __init__(self):
     self.data = ''
-    self.app_ids = app_ids
+    self.app_apns_services = app_ids
     self.sent_count = 0
 
   def apns_service(self, app_id):
     if app_id not in app_ids:
       return None
-    services = self.app_ids[app_id]
+    services = self.app_apns_services[app_id]
     ret = services[-1]
     if len(services) > 1:
       tmp = services.pop()
@@ -411,19 +430,29 @@ class P4Server(protocol.Protocol):
     #endif
     return ret
 
-  def provision(self, app_id, path_to_cert_or_cert, environment):
+  def provision(self, app_name, path_to_cert_or_cert, environment):
     if environment not in ('sandbox', 'production', 'inhouse'):
       return None # TODO log
-    if not app_id in self.app_ids:
+
+    if app_name[-11:] == '_production':
+      apns_service_count = 100
+    else:
+      apns_service_count = 5
+
+    if not app_name in self.app_apns_services:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
-      self.app_ids[app_id] = []
-      self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, 30))
-
-      if app_id.find("_production")>=0:
-        for _ in xrange(100):
-          ns = APNSService(path_to_cert_or_cert, environment, app_id, 30)
-          self.app_ids[app_id].append(ns)
-
+      self.app_apns_services[app_name] = []
+      for _ in xrange(apns_service_count):
+        ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
+        if ns.is_valid():
+          self.app_apns_services[app_name].append(ns)
+    else:
+      count = apns_service_count - len(self.app_apns_services[app_name])
+      if count > 0:
+        for _ in xrange(count):
+          ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
+          if ns.is_valid():
+            self.app_apns_services[app_name].append(ns)
 
   def notify(self, app_id, token_or_token_list, aps_dict_or_list):
     try:
