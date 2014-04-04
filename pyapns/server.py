@@ -445,8 +445,8 @@ class P4Server(protocol.Protocol):
         log.msg('Fisrt Add %dth APNSService for %s ' % (i+1, app_name))
         apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
         self.app_apns_services[app_name].insert(0, apns_service)
-        import time
-        time.sleep(10)
+      import time
+      time.sleep(10)
     else:
       count = apns_service_count - len(self.app_apns_services[app_name])
       if count > 0:
