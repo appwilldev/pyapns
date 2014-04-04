@@ -466,7 +466,7 @@ class P4Server(protocol.Protocol):
       if apns_service is not None:
         apns_service.write(data)
       else:
-        log.msg('NO valid APNSService for %S' % app_name)
+        log.msg('NO valid APNSService for %s' % app_name)
         ### try to reload app perm
         app_info = app_cert_path.get(app_name)
         if app_info is not None:
