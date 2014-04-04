@@ -434,14 +434,14 @@ class P4Server(protocol.Protocol):
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_apns_services[app_name] = []
       for i in xrange(apns_service_count):
-        log.msg('Fisrt Add %dth APNSService for %s ' % (i, app_name))
+        log.msg('Fisrt Add %dth APNSService for %s ' % (i+1, app_name))
         apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
         self.app_apns_services[app_name].append(apns_service)
     else:
       count = apns_service_count - len(self.app_apns_services[app_name])
       if count > 0:
         for i in xrange(count):
-          log.msg('After Add %dth APNSService for %s ' % (i, app_name))
+          log.msg('After Add %dth APNSService for %s ' % (i+1, app_name))
           ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
           self.app_apns_services[app_name].append(ns)
 
