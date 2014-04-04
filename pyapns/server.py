@@ -422,11 +422,14 @@ class P4Server(protocol.Protocol):
   def apns_service(self, app_id):
     if app_id not in app_ids:
       return None
+
     services = self.app_apns_services[app_id]
-    ret = services[-1]
-    if len(services) > 1:
-      tmp = services.pop()
-      services.insert(0, tmp)
+    ret = services.pop()
+
+    if ret.is_valid():
+      services.insert(0, ret)
+    else:
+        return None
     #endif
     return ret
 
@@ -442,26 +445,33 @@ class P4Server(protocol.Protocol):
     if not app_name in self.app_apns_services:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_apns_services[app_name] = []
-      for _ in xrange(apns_service_count):
+      for i in xrange(apns_service_count):
+        log.msg('Fisrt Add %dth APNSService for %s ' % (i, app_name))
         ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
         if ns.is_valid():
           self.app_apns_services[app_name].append(ns)
     else:
       count = apns_service_count - len(self.app_apns_services[app_name])
       if count > 0:
-        for _ in xrange(count):
+        for i in xrange(count):
+          log.msg('After Add %dth APNSService for %s ' % (i, app_name))
           ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
           if ns.is_valid():
             self.app_apns_services[app_name].append(ns)
 
-  def notify(self, app_id, token_or_token_list, aps_dict_or_list):
+  def notify(self, app_name, token_or_token_list, aps_dict_or_list):
     try:
       data = encode_notifications(
         [t.replace(' ', '') for t in token_or_token_list]
         if (type(token_or_token_list) is list)
         else token_or_token_list.replace(' ', ''),
         aps_dict_or_list)
-      d = self.apns_service(app_id).write(data)
+
+      apns_service = self.apns_service(app_name)
+      if apns_service is not None:
+        d = apns_service.write(data)
+      else:
+        log.msg('NO valid APNSService for %S' % app_name)
     except:
       pass
 
