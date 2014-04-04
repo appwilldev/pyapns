@@ -413,18 +413,12 @@ class P4Server(protocol.Protocol):
       return None
 
     services = self.app_apns_services[app_name]
-
-    while True:
-      apns_service = None
-      if len(services) == 0:
-        break
-
-      apns_service = services.pop()
-      if apns_service.is_valid():
-        services.insert(0, apns_service)
-        break
-      else:
+    apns_service = services.pop()
+    if apns_service.is_valid():
+      services.insert(0, apns_service)
+    else:
         del apns_service
+        apns_service = None
       #endif
     #endwhile
 
