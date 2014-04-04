@@ -420,7 +420,7 @@ class P4Server(protocol.Protocol):
         del apns_service
         return None
     #endif
-    return ret
+    return apns_service
 
   def provision(self, app_name, path_to_cert_or_cert, environment):
     if environment not in ('sandbox', 'production', 'inhouse'):
