@@ -410,11 +410,12 @@ class P4Server(protocol.Protocol):
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       self.app_ids[app_id] = []
       self.app_ids[app_id].append(APNSService(path_to_cert_or_cert, environment, app_id, 30))
-      # need_multi = app_id.find("FreeCN_production")>=0 #TODO
-      # if(need_multi):
-      #   for _ in xrange(90):
-      #     ns = APNSService(path_to_cert_or_cert, environment, app_id, 30)
-      #     self.app_ids[app_id].append(ns)
+
+      if app_id.find("_production")>=0:
+        for _ in xrange(100):
+          ns = APNSService(path_to_cert_or_cert, environment, app_id, 30)
+          self.app_ids[app_id].append(ns)
+
 
   def notify(self, app_id, token_or_token_list, aps_dict_or_list):
     try:
