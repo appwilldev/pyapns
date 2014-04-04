@@ -201,15 +201,10 @@ class APNSService(service.Service):
                     if self.environment == 'sandbox'
                     else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
 
-    i = 0
-    while i < 3:
-      self.factory = self.clientProtocolFactory(appname=self.appname)
-      context = self.getContextFactory()
-      reactor.connectSSL(server, port, self.factory, context)
 
-      if self.factory.clientProtocol:
-        break
-      i += 1
+    self.factory = self.clientProtocolFactory(appname=self.appname)
+    context = self.getContextFactory()
+    reactor.connectSSL(server, port, self.factory, context)
 
   def is_valid(self):
     if self.factory.clientProtocol:
@@ -227,15 +222,9 @@ class APNSService(service.Service):
                       if self.environment == 'sandbox'
                       else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
 
-      i = 0
-      while i < 3:
-        self.factory = self.clientProtocolFactory(appname=self.appname)
-        context = self.getContextFactory()
-        reactor.connectSSL(server, port, self.factory, context)
-
-        if self.factory.clientProtocol:
-          break
-        i += 1
+      self.factory = self.clientProtocolFactory(appname=self.appname)
+      context = self.getContextFactory()
+      reactor.connectSSL(server, port, self.factory, context)
 
     client = self.factory.clientProtocol
     if client:
