@@ -201,7 +201,6 @@ class APNSService(service.Service):
                     if self.environment == 'sandbox'
                     else APNS_SERVER_HOSTNAME), APNS_SERVER_PORT)
 
-
     self.factory = self.clientProtocolFactory(appname=self.appname)
     context = self.getContextFactory()
     reactor.connectSSL(server, port, self.factory, context)
@@ -437,8 +436,7 @@ class P4Server(protocol.Protocol):
       for i in xrange(apns_service_count):
         log.msg('Fisrt Add %dth APNSService for %s ' % (i, app_name))
         ns = APNSService(path_to_cert_or_cert, environment, app_name, 30)
-        if ns.is_valid():
-          self.app_apns_services[app_name].append(ns)
+        self.app_apns_services[app_name].append(ns)
     else:
       count = apns_service_count - len(self.app_apns_services[app_name])
       if count > 0:
