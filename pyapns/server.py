@@ -461,10 +461,7 @@ class P4Server(protocol.Protocol):
         aps_dict_or_list)
 
       apns_service = self.apns_service(app_name)
-      if apns_service.is_valid():
-        apns_service.write(data)
-      else:
-        log.msg('No valid APNSService for %s' % app_name)
+      apns_service.write(data)
     except:
       pass
 
