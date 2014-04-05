@@ -435,13 +435,13 @@ class P4Server(protocol.Protocol):
     if not app_name in self.app_apns_services:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
       if app_name[-11:] == '_production':
-        apns_service_count = 60
+        apns_service_count = 100
       else:
         apns_service_count = 5
       self.app_apns_services[app_name] = []
       for i in xrange(apns_service_count):
         log.msg('Fisrt Add %dth APNSService for %s ' % (i+1, app_name))
-        apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
+        apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 60)
         self.app_apns_services[app_name].insert(0, apns_service)
     # else:
     #   count = apns_service_count - len(self.app_apns_services[app_name])
@@ -500,7 +500,7 @@ class P4Server(protocol.Protocol):
         self.notify(jd.get("app_id"),
                     jd.get("tokens"),
                     jd.get("notify"))
-        if self.sent_count < 5000: continue
+        if self.sent_count < 10000: continue
         self.sent_count = 0
         self.feedback(jd.get("app_id"))
       #endif
