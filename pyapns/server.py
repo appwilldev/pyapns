@@ -25,7 +25,7 @@ FEEDBACK_SERVER_HOSTNAME = "feedback.push.apple.com"
 FEEDBACK_SERVER_PORT = 2196
 
 app_apns_services = {} # {'app_id': APNSService()}
-app_cert_path = {}
+# app_cert_path = {}
 
 class StringIO(_StringIO):
   """Add context management protocol to StringIO
@@ -424,36 +424,35 @@ class P4Server(protocol.Protocol):
     return apns_service
 
   def provision(self, app_name, path_to_cert_or_cert, environment):
-    global app_cert_path
+    # global app_cert_path
 
     if environment not in ('sandbox', 'production', 'inhouse'):
       return None # TODO log
 
-    if app_name not in app_cert_path:
-        app_cert_path[app_name] = [path_to_cert_or_cert, environment]
-
-    if app_name[-11:] == '_production':
-      apns_service_count = 100
-    else:
-      apns_service_count = 5
+    # if app_name not in app_cert_path:
+    #     app_cert_path[app_name] = [path_to_cert_or_cert, environment]
 
     if not app_name in self.app_apns_services:
       # log.msg('provisioning ' + app_id + ' environment ' + environment)
+      if app_name[-11:] == '_production':
+        apns_service_count = 60
+      else:
+        apns_service_count = 5
       self.app_apns_services[app_name] = []
       for i in xrange(apns_service_count):
         log.msg('Fisrt Add %dth APNSService for %s ' % (i+1, app_name))
         apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
         self.app_apns_services[app_name].insert(0, apns_service)
-    else:
-      count = apns_service_count - len(self.app_apns_services[app_name])
-      if count > 0:
-        for i in xrange(count):
-          log.msg('After Add %dth APNSService for %s ' % (i+1, app_name))
-          apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
-          self.app_apns_services[app_name].insert(0, apns_service)
+    # else:
+    #   count = apns_service_count - len(self.app_apns_services[app_name])
+    #   if count > 0:
+    #     for i in xrange(count):
+    #       log.msg('After Add %dth APNSService for %s ' % (i+1, app_name))
+    #       apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
+    #       self.app_apns_services[app_name].insert(0, apns_service)
 
   def notify(self, app_name, token_or_token_list, aps_dict_or_list):
-    global app_cert_path
+    # global app_cert_path
     try:
       data = encode_notifications(
         [t.replace(' ', '') for t in token_or_token_list]
@@ -462,10 +461,10 @@ class P4Server(protocol.Protocol):
         aps_dict_or_list)
 
       apns_service = self.apns_service(app_name)
-      if apns_service is not None:
+      if apns_service.is_valid():
         apns_service.write(data)
       else:
-        log.msg('NO valid APNSService for %s' % app_name)
+        log.msg('No valid APNSService for %s' % app_name)
     except:
       pass
 
