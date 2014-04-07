@@ -413,12 +413,16 @@ class P4Server(protocol.Protocol):
       return None
 
     services = self.app_apns_services[app_name]
-    apns_service = services.pop()
-    # if apns_service.is_valid():
-    services.insert(0, apns_service)
-    # else:
-    #     apns_service = None
-      #endif
+
+    i = 0
+    apns_service = None
+    while i < len(services):
+      apns_service = services.pop()
+      services.insert(0, apns_service)
+      if apns_service.is_valid():
+        break
+      else:
+        i += 2
     #endwhile
 
     return apns_service
@@ -443,13 +447,6 @@ class P4Server(protocol.Protocol):
         log.msg('Fisrt Add %dth APNSService for %s ' % (i+1, app_name))
         apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 60)
         self.app_apns_services[app_name].insert(0, apns_service)
-    # else:
-    #   count = apns_service_count - len(self.app_apns_services[app_name])
-    #   if count > 0:
-    #     for i in xrange(count):
-    #       log.msg('After Add %dth APNSService for %s ' % (i+1, app_name))
-    #       apns_service = APNSService(path_to_cert_or_cert, environment, app_name, 30)
-    #       self.app_apns_services[app_name].insert(0, apns_service)
 
   def notify(self, app_name, token_or_token_list, aps_dict_or_list):
     # global app_cert_path
@@ -497,9 +494,9 @@ class P4Server(protocol.Protocol):
         self.notify(jd.get("app_id"),
                     jd.get("tokens"),
                     jd.get("notify"))
-        if self.sent_count < 10000: continue
-        self.sent_count = 0
-        self.feedback(jd.get("app_id"))
+        #if self.sent_count < 10000: continue
+        # self.sent_count = 0
+        # self.feedback(jd.get("app_id"))
       #endif
 
   def dataReceived(self, data):
